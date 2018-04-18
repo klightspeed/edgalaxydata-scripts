@@ -17,7 +17,7 @@ if (( $(stat -c '%Y' "${EDSMDIR}/bodies.jsonl.bz2") < $(date +%s --date="$(curl 
   rm "${BODIESDIR}/edsm-namedbodies-cache.json"
 fi
 
-curl -s "https://www.edsm.net/dump/bodies7days.json" | "${SCRIPTSDIR}/jsontojsonl.py" | bzip2 >"${EDSMDIR}/bodies-${DATE}.jsonl.ba2"
+curl -s "https://www.edsm.net/dump/bodies7days.json" | "${SCRIPTSDIR}/jsontojsonl.py" | bzip2 >"${EDSMDIR}/bodies-${DATE}.jsonl.bz2"
 curl -s "https://www.edsm.net/dump/systemsWithCoordinates.json" | "${SCRIPTSDIR}/jsontojsonl.py" >"${EDSMDIR}/systemsWithCoordinates.jsonl"
 curl -s "https://www.edsm.net/dump/systemsWithoutCoordinates.json" | "${SCRIPTSDIR}/jsontojsonl.py" >"${EDSMDIR}/systemsWithoutCoordinates.jsonl"
 
