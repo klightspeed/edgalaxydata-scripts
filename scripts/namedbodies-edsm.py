@@ -121,22 +121,26 @@ def saveNamedBodies(systems, knownbodies, knownbyname, rejectstore):
             
         o.write('\n]\n')
 
-def processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles):
-    filenames = [bodiesfile] + sorted(glob.glob(bodiesdeltaglob))
-    for fn in filenames:
-        if fn not in excludefiles:
-            with bz2.BZ2File(fn, 'r') as f:
-                system = None
-                for line in f:
-                    body = Body(json.loads(line.decode('utf-8')))
-                    if system is None or system.sysid != body.sysid:
-                        if body.sysid in systems:
-                            system = systems[body.sysid]
-                        else:
-                            system = System(body.sysid)
-                    
-                    system.processBodyPass1(body, rejectstore, systems, knownbodies, knownbyname, sysrename)
+def processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename):
+    with bz2.BZ2File(filename, 'r') as f:
+        system = None
+        for line in f:
+            body = Body(json.loads(line.decode('utf-8')))
+            if system is None or system.sysid != body.sysid:
+                if body.sysid in systems:
+                    system = systems[body.sysid]
+                else:
+                    system = System(body.sysid)
+            
+            system.processBodyPass1(body, rejectstore, systems, knownbodies, knownbyname, sysrename)
 
+def processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles):
+    if !os.path.exists(cachefile_named) or os.path.getmtime(bodiesfile) > os.path.getmtime(cachefile_named):
+        processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename)
+        
+    for fn in sorted(glob.glob(bodiesdeltaglob)):
+        if fn not in excludefiles:
+            processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename)
             excludefiles.add(fn)
 
 class RejectStore:

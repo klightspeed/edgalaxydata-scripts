@@ -14,7 +14,6 @@ curl -s "https://www.edsm.net/api-v1/systems?showId=1&coords=1&submitted=1&showI
 
 if (( $(stat -c '%Y' "${EDSMDIR}/bodies.jsonl.bz2") < $(date +%s --date="$(curl -s -I 'https://www.edsm.net/dump/bodies.json' | sed -n 's/^Last-Modified: //p')") )); then
   curl -s "https://www.edsm.net/dump/bodies.json" | "${SCRIPTSDIR}/jsontojsonl.py" | bzip2 >"${EDSMDIR}/bodies.jsonl.bz2"
-  rm "${BODIESDIR}/edsm-namedbodies-cache.json"
 fi
 
 curl -s "https://www.edsm.net/dump/bodies7days.json" | "${SCRIPTSDIR}/jsontojsonl.py" | bzip2 >"${EDSMDIR}/bodies-${DATE}.jsonl.bz2"
