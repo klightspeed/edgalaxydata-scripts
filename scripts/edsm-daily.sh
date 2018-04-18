@@ -13,12 +13,12 @@ curl -s "https://www.edsm.net/api-v1/systems?showId=1&coords=1&submitted=1&showI
 	bzip2 >"${EDSMDIR}/systems-${DATE}.jsonl.bz2"
 
 if (( $(stat -c '%Y' "${EDSMDIR}/bodies.jsonl.bz2") < $(date +%s --date="$(curl -s -I 'https://www.edsm.net/dump/bodies.json' | sed -n 's/^Last-Modified: //p')") )); then
-  curl -s "https://www.edsm.net/dump/bodies.json" | sed -n 's/^ *\([{].*[}]\),*/\1/p' | bzip2 >"${EDSMDIR}/bodies.jsonl.bz2"
+  curl -s "https://www.edsm.net/dump/bodies.json" | "${SCRIPTSDIR}/jsontojsonl.py" | bzip2 >"${EDSMDIR}/bodies.jsonl.bz2"
 fi
 
-curl -s "https://www.edsm.net/dump/bodies7days.json" | sed 's/^ *\([{].*[}]\),*/\1/p' | bzip2 >"${EDSMDIR}/bodies-${DATE}.jsonl.ba2"
-curl -s "https://www.edsm.net/dump/systemsWithCoordinates.json" | sed -n 's/^ *\([{].*[}]\),*/\1/p' >"${EDSMDIR}/systemsWithCoordinates.jsonl"
-curl -s "https://www.edsm.net/dump/systemsWithoutCoordinates.json" | sed -n 's/^ *\([{].*[}]\),*/\1/p' >"${EDSMDIR}/systemsWithoutCoordinates.jsonl"
+curl -s "https://www.edsm.net/dump/bodies7days.json" | "${SCRIPTSDIR}/jsontojsonl.py" | bzip2 >"${EDSMDIR}/bodies-${DATE}.jsonl.ba2"
+curl -s "https://www.edsm.net/dump/systemsWithCoordinates.json" | "${SCRIPTSDIR}/jsontojsonl.py" >"${EDSMDIR}/systemsWithCoordinates.jsonl"
+curl -s "https://www.edsm.net/dump/systemsWithoutCoordinates.json" | "${SCRIPTSDIR}/jsontojsonl.py" >"${EDSMDIR}/systemsWithoutCoordinates.jsonl"
 
 "${SCRIPTSDIR}/namedbodies-edsm.py" >"${BODIESDIR}/edsm-namedbodies.log"
 "${SCRIPTSDIR}/process_materials_edsm.sh"
