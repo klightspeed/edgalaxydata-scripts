@@ -136,6 +136,7 @@ def processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, 
 
 def processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles):
     if !os.path.exists(cachefile_named) or os.path.getmtime(bodiesfile) > os.path.getmtime(cachefile_named):
+        systems.clear()
         processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename)
         
     for fn in sorted(glob.glob(bodiesdeltaglob)):
