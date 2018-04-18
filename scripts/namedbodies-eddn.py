@@ -11,15 +11,20 @@ import glob
 import os
 import os.path
 
+eddndir   = '/srv/eddata/EDDN'
+bodiesdir = '/srv/eddata/namedbodies'
+
 revpgsysre = re.compile('[0-9]+(-[0-9]+)?[a-h] [a-z]-[a-z][a-z] ')
 pgre = re.compile(' [a-z][a-z]-[a-z] [a-h][0-9]')
 desigre = re.compile('( [a-h]|( a?b?c?d?e?f?g?h?){0,1} ([1-9][0-9]*( [a-z]( [a-z]( [a-z])?)?)?|[a-h] belt cluster [1-9][0-9]*))$')
 sdesigre = re.compile(' [a-h]$')
-srcglob = '/srv/eddata/EDDN/Journal.Scan-*.jsonl.bz2'
-syscleanupfile = '/srv/eddata/namedbodies/syscleanup.txt'
-sysrenamefile = '/srv/eddata/namedbodies/renamed-systems.txt'
-outfile_named = '/srv/eddata/namedbodies/eddn-namedbodies.json'
-cachefile_named = '/srv/eddata/namedbodies/eddn-namedbodies-cache.json'
+
+srcglob         = eddndir   + '/Journal.Scan-*.jsonl.bz2'
+syscleanupfile  = bodiesdir + '/syscleanup.txt'
+sysrenamefile   = bodiesdir + '/renamed-systems.txt'
+outfile_named   = bodiesdir + '/eddn-namedbodies.json'
+cachefile_named = bodiesdir + '/eddn-namedbodies-cache.json'
+
 sheeturi = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9lEav_Bs8rZGRtwcwuOwQ2hIoiNJ_PWYAEgXk7E3Y-UD0r6uER04y4VoQxFAAdjMS4oipPyySoC3t/pub?gid=711269421&single=true&output=tsv'
 
 badsys_3_0_2 = set([
