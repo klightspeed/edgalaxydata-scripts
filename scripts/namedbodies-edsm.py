@@ -142,13 +142,13 @@ class RejectStore:
 
     def __enter__(self):
         self.m.write('[\n  ')
-        for bid, reject in self.rejects:
+        for bid, reject in self.rejects.items():
             self.store(reject)
         return self
 
     def __exit__(self, type, value, traceback):
         if type is None:
-            m.write('\n]\n')
+            self.m.write('\n]\n')
 
     def add(self, body, rejectType, rejectReason):
         self.store(body, rejectType = rejectType, rejectReason = rejectReason)
@@ -225,16 +225,16 @@ class Body:
         elif not name.startswith(sysname) and not self.isbadpgsys:
             return True
 
-    def isduplicate(self, knownbodies, knownbyname):
-        kskey = sysname + ':' + name
-        if name in knownbyname and kskey not in knownbodies:
-            for dup in knownbyname[name]:
-                if dup.id != body.id:
-                    if body.sma is None and dup.sma is None:
-                        return True
-                    elif body.aop is not None and dup.aop is not None and body.inclin is not None and dup.inclin is not None:
-                        if abs(body.aop - dup.aop) < 0.01 and abs(body.inclin - dup.inclin) < 0.01:
-                            return True
+    def findDuplicate(self, knownbodies, knownbyname):
+        kskey = self.sysname + ':' + self.name
+        if self.name in knownbyname and kskey not in knownbodies:
+            for dup in knownbyname[self.name]:
+                if dup.id != self.id:
+                    if self.sma is None and dup.sma is None:
+                        return dup
+                    elif self.aop is not None and dup.aop is not None and self.inclin is not None and dup.inclin is not None:
+                        if abs(self.aop - dup.aop) < 0.01 and abs(self.inclin - dup.inclin) < 0.01:
+                            return dup
 
 class KnownBody:
     def __init__(self, body):
@@ -296,16 +296,17 @@ class System:
         addsys = False
 
         for bid, body in self.bodies.items():
-            kskey = sysname + ':' + name
+            kskey = body.sysname + ':' + body.name
             j = tojournal(body.body)
             isdup = False
             ispgdesig = False
             desig = None
             mismatchreason = None
 
-            if body.isduplicate(knownbodies, knownbyname):
+            dup = body.findDuplicate(knownbodies, knownbyname)
+            if dup:
                 isdup = True
-                mismatchreason = 'Duplicate of body in {0}'.format(dup['systemName'])
+                mismatchreason = 'Duplicate of body in {0}'.format(dup.sysname)
 
             if (isnamed and not isdup and not body.ispgdesig) or kskey in knownbodies:
                 addsys = True
@@ -336,18 +337,24 @@ class System:
         return isnamed
 
     def todict(self):
-        return { bid: body.body for bid, body in bodies.items() }
+        return { bid: body.body for bid, body in self.bodies.items() }
 
 def main():
+    print('Loading known bodies')
     knownbodies = loadKnownBodies()
+    print('Loading renamed systems')
     sysrename = loadSysRename()
+    print('Loading cache')
     systems, knownbyname, rejects, excludefiles = loadCache()
 
     with open(outfile_mismatch + '.tmp', 'w', encoding='utf-8') as m, RejectStore(m, rejects) as rejectstore:
+        print('Processing bodies')
         processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles)
 
+        print('Saving cache')
         saveCache(systems, knownbyname, rejectstore, excludefiles)
 
+        print('Saving named bodies')
         saveNamedBodies(systems, knownbodies, knownbyname, rejectstore)
 
     os.rename(outfile_mismatch + '.tmp', outfile_mismatch)
