@@ -21,7 +21,12 @@ message_types = {
     'https://eddn.edcd.io/schemas/outfitting/2': 'Outfitting',
     'https://eddn.edcd.io/schemas/shipyard/2': 'Shipyard',
     'https://eddn.edcd.io/schemas/commodity/3': 'Commodity',
-    'https://eddn.edcd.io/schemas/blackmarket/1': 'BlackMarket'
+    'https://eddn.edcd.io/schemas/blackmarket/1': 'BlackMarket',
+    'https://eddn.edcd.io/schemas/journal/1/test': 'Test-Journal',
+    'https://eddn.edcd.io/schemas/outfitting/2/test': 'Test-Outfitting',
+    'https://eddn.edcd.io/schemas/shipyard/2/test': 'Test-Shipyard',
+    'https://eddn.edcd.io/schemas/commodity/3/test': 'Test-Commodity',
+    'https://eddn.edcd.io/schemas/blackmarket/1/test': 'Test-BlackMarket',
 }
 
 eddndir = '/srv/eddata/EDDN'
@@ -35,8 +40,8 @@ def process_msg(msgtype, msg, msgraw):
     print(msgraw.decode('utf-8'))
     sys.stdout.flush()
     date = datetime.utcnow()
-    if msgtype == 'Journal':
-        eventtype = 'Journal.' + msg['message']['event']
+    if msgtype in ['Journal', 'Test-Journal']:
+        eventtype = msgtype + '.' + msg['message']['event']
     else:
         eventtype = msgtype
     filename = eddndir + '/{0}-{1:%Y-%m-%d}.jsonl'.format(eventtype, date)
