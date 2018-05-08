@@ -118,30 +118,34 @@ def saveNamedBodies(systems, knownbodies, knownbyname, rejectstore):
                         o.write(',\n  ')
                     o.write(json.dumps(j, sort_keys=True))
                     ol = ol + 1
-            
+
         o.write('\n]\n')
 
 def processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename):
     with bz2.BZ2File(filename, 'r') as f:
         system = None
         for line in f:
-            body = Body(json.loads(line.decode('utf-8')))
-            if system is None or system.sysid != body.sysid:
-                if body.sysid in systems:
-                    system = systems[body.sysid]
-                else:
-                    system = System(body.sysid)
-            
-            system.processBodyPass1(body, rejectstore, systems, knownbodies, knownbyname, sysrename)
+            try:
+                body = Body(json.loads(line.decode('utf-8')))
+            except:
+                print('Error decoding line: {0}'.format(line))
+            else:
+                if system is None or system.sysid != body.sysid:
+                    if body.sysid in systems:
+                        system = systems[body.sysid]
+                    else:
+                        system = System(body.sysid)
+
+                system.processBodyPass1(body, rejectstore, systems, knownbodies, knownbyname, sysrename)
 
 def processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles):
-    if !os.path.exists(cachefile_named) or os.path.getmtime(bodiesfile) > os.path.getmtime(cachefile_named):
+    if not os.path.exists(cachefile_named) or os.path.getmtime(bodiesfile) > os.path.getmtime(cachefile_named):
         systems.clear()
-        processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename)
-        
+        processBodiesFile(bodiesfile, systems, knownbodies, knownbyname, rejectstore, sysrename)
+
     for fn in sorted(glob.glob(bodiesdeltaglob)):
         if fn not in excludefiles:
-            processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename)
+            processBodiesFile(fn, systems, knownbodies, knownbyname, rejectstore, sysrename)
             excludefiles.add(fn)
 
 class RejectStore:
@@ -278,7 +282,7 @@ class System:
 
         if body.id in rejectstore.rejects:
             return
-        
+
         if body.isrenamedsys(sysrename):
             rejectstore.add(body.body, 'Rejected', 'Body with old system name')
             return
