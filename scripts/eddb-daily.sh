@@ -9,6 +9,7 @@ wget 'https://eddb.io/archive/v5/stations.jsonl' -O "${EDDBDIR}/stations.jsonl"
 wget 'https://eddb.io/archive/v5/factions.jsonl' -O "${EDDBDIR}/factions.jsonl"
 wget 'https://eddb.io/archive/v5/commodities.json' -O "${EDDBDIR}/commodities.json"
 wget 'https://eddb.io/archive/v5/modules.json' -O "${EDDBDIR}/modules.json"
+wget -N 'https://eddb.io/archive/v5/systems.csv' -O "${EDDBDIR}/systems.csv"
 find ${EDDBDIR} -name 'bodies_recently_*.jsonl' -mtime +2 -print0 | xargs -0 bzip2
 find ${EDDBDIR} -name 'systems_recently_*.csv' -mtime +2 -print0 | xargs -0 bzip2
 
