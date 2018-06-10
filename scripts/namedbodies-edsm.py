@@ -143,10 +143,11 @@ def processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename
         systems.clear()
         processBodiesFile(bodiesfile, systems, knownbodies, knownbyname, rejectstore, sysrename)
 
-    for fn in sorted(glob.glob(bodiesdeltaglob)):
-        if fn not in excludefiles:
-            processBodiesFile(fn, systems, knownbodies, knownbyname, rejectstore, sysrename)
-            excludefiles.add(fn)
+    if False:
+        for fn in sorted(glob.glob(bodiesdeltaglob)):
+            if fn not in excludefiles:
+                processBodiesFile(fn, systems, knownbodies, knownbyname, rejectstore, sysrename)
+                excludefiles.add(fn)
 
 class RejectStore:
     def __init__(self, m, rejects):

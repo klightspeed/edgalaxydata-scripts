@@ -20,5 +20,8 @@ curl -s "https://www.edsm.net/dump/bodies7days.json" | "${SCRIPTSDIR}/jsontojson
 curl -s "https://www.edsm.net/dump/systemsWithCoordinates.json" | "${SCRIPTSDIR}/jsontojsonl.py" >"${EDSMDIR}/systemsWithCoordinates.jsonl"
 curl -s "https://www.edsm.net/dump/systemsWithoutCoordinates.json" | "${SCRIPTSDIR}/jsontojsonl.py" >"${EDSMDIR}/systemsWithoutCoordinates.jsonl"
 
-"${SCRIPTSDIR}/namedbodies-edsm.py" >"${BODIESDIR}/edsm-namedbodies.log"
+if [ "${EDSMDIR}/bodies.jsonl.bz2" -nt "${BODIESDIR}/edsm-namedbodies.json" ]; then
+  rm "${BODIESDIR}/edsm-namedbodies-cache.json"
+  "${SCRIPTSDIR}/namedbodies-edsm.py" >"${BODIESDIR}/edsm-namedbodies.log"
+fi
 "${SCRIPTSDIR}/process_materials_edsm.sh"

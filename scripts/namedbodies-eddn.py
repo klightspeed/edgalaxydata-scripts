@@ -261,7 +261,7 @@ def main():
                 
                 if name in knownbyname and kskey not in knownbodies:
                     for dup in knownbyname[name]:
-                        if dup['timestamp'] != body['timestamp']:
+                        if dup['timestamp'] != body['timestamp'] or dup['StarSystem'].lower() != sysname:
                             dupsma = dup['SemiMajorAxis'] if 'SemiMajorAxis' in dup else 0
                             dupaop = dup['Periapsis'] if 'Periapsis' in dup else 0
                             dupinclin = dup['Inclination'] if 'Inclination' in dup else 0
