@@ -11,19 +11,21 @@ import glob
 import os
 import os.path
 
-eddndir   = '/srv/eddata/EDDN'
+eddndir   = '/srv/eddata/EDDN-anon'
 bodiesdir = '/srv/eddata/namedbodies'
 
 revpgsysre = re.compile('[0-9]+(-[0-9]+)?[a-h] [a-z]-[a-z][a-z] ')
 pgre = re.compile(' [a-z][a-z]-[a-z] [a-h][0-9]')
-desigre = re.compile('( [a-h]|( a?b?c?d?e?f?g?h?){0,1} ([1-9][0-9]*( [a-z]( [a-z]( [a-z])?)?)?|[a-h] belt cluster [1-9][0-9]*))$')
+desigre = re.compile('( [a-h]|( a?b?c?d?e?f?g?h?){0,1} ([1-9][0-9]*( [a-z]( [a-z]( [a-z])?)?)?( [a-h] ring)?|[a-h] belt cluster [1-9][0-9]*))$')
 sdesigre = re.compile(' [a-h]$')
 
-srcglob         = eddndir   + '/Journal.Scan-*.jsonl.bz2'
-syscleanupfile  = bodiesdir + '/syscleanup.txt'
-sysrenamefile   = bodiesdir + '/renamed-systems.txt'
-outfile_named   = bodiesdir + '/eddn-namedbodies.json'
-cachefile_named = bodiesdir + '/eddn-namedbodies-cache.json'
+srcglob          = eddndir   + '/Journal.Scan-*.jsonl.bz2'
+syscleanupfile   = bodiesdir + '/syscleanup.txt'
+sysrenamefile    = bodiesdir + '/renamed-systems.txt'
+outfile_named    = bodiesdir + '/eddn-namedbodies.json'
+cachefile_named  = bodiesdir + '/eddn-namedbodies-cache.json'
+rejectfile_named = bodiesdir + '/eddn-namedbodies-rejected.json'
+softwarefile     = bodiesdir + '/eddn-namedbodies-software.json'
 
 sheeturi = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9lEav_Bs8rZGRtwcwuOwQ2hIoiNJ_PWYAEgXk7E3Y-UD0r6uER04y4VoQxFAAdjMS4oipPyySoC3t/pub?gid=711269421&single=true&output=tsv'
 
@@ -76,6 +78,8 @@ def main():
     systems = {}
     knownbyname = {}
     excludefiles = set()
+    rejectedbodies = []
+    software = {}
 
     if os.path.exists(cachefile_named):
         try:
@@ -84,6 +88,8 @@ def main():
                 excludefiles = set(cachedata['files'])
                 systems = cachedata['systems']
                 knownbyname = cachedata['knownbyname']
+                rejectedbodies = cachedata['rejects']
+                software = cachedata['software']
         except:
             pass
 
@@ -96,8 +102,12 @@ def main():
                 try:
                     msg = json.loads(line.decode('utf-8'))
                     body = msg['message']
-                    del msg['header']['uploaderID']
+                    if 'uploaderID' in msg['header']:
+                        del msg['header']['uploaderID']
+                    if 'timestamp' not in body:
+                        continue
                 except:
+                    print('Error: {0}'.format(sys.exc_info()[0]))
                     pass
                 else:
                     name = body['BodyName'].lower()
@@ -113,10 +123,26 @@ def main():
                     addsys = False
                     desig = None
                     ispgdesig = False
+
+                    softwareName = msg['header']['softwareName']
+                    softwareVersion = msg['header']['softwareVersion']
+                    softwareNameVer = softwareName + '\t' + softwareVersion
+
+                    if (softwareNameVer not in software){
+                        software[softwareNameVer] = { 
+                            'name': softwareName, 
+                            'version': softwareVersion, 
+                            'total': 0
+                        }
+                    }
+
+                    software[softwareNameVer]['total'] += 1
                 
                     if sysname in sysrename and not name.startswith(sysname):
                         if any(name == oldsys or (name.startswith(oldsys.lower() + ' ') and desigre.match(name[len(oldname):])) for oldsys in sysrename[sysname]):
                             print("[{0}] Rejected: {1} / {2} : Body with old system name".format(ts, sysname, name))
+                            msg['reject'] = {'type': 'OldName', 'reason': 'Body with old system name'}
+                            rejectedbodies += [msg]
                             continue
 
                     if sysname in badsys_2_3_10 and ts >= '2017-06-26' and ts < '2017-09-26':
@@ -174,6 +200,8 @@ def main():
                     elif not name.startswith(sysname):
                         if pgre.search(name):
                             print("[{0}] Mismatch:  {1} / {2} : Procgen body in wrong system".format(ts, sysname, name))
+                            msg['reject'] = {'type': 'Mismatch', 'reason': 'Procgen body in wrong system'}
+                            rejectedbodies += [msg]
                             nbody = None
                         else:
                             nbody = msg
@@ -206,8 +234,10 @@ def main():
                                     if (kbbodyid is None or (bodyid is not None and bodyid == kbbodyid)):
                                         print('[{0}] Updating   {1} / {2}'.format(ts, sysname, name))
                                         systems[sysname][kbindex] = msg
-                                    else:
+                                    elif bodyid is not None:
                                         print('[{0}] Rejected:  {1} / {2} : bodyid {3}.{4} != {5}.{6}'.format(ts, sysname, name, sysid, bodyid, kbsysid, kbbodyid))
+                                        msg['reject'] = {'type': 'Rejected', 'reason': 'Body ID mismatch: bodyid {0}.{1} != {2}.{3}'.format(sysid, bodyid, kbsysid, kbbodyid)}
+                                        rejectedbodies += [msg]
                             else:
                                 print('[{0}] Processing {1} / {2}'.format(ts, sysname, name))
                                 systems[sysname] += [msg]
@@ -217,16 +247,21 @@ def main():
         json.dump({
             'files': list(excludefiles),
             'systems': systems,
-            'knownbyname': knownbyname
+            'knownbyname': knownbyname,
+            'rejects': rejectedbodies,
+            'software': software
         }, f)
+
+    with open(softwarefile + '.tmp', 'w', encoding='utf-8') as f:
+        json.dump(software, f)
 
     with open(outfile_named + '.tmp', 'w', encoding='utf-8') as o:
         o.write('[\n  ')
         ol = 0
-        for sysid, sys in systems.items():
+        for sysid, esys in systems.items():
             isnamed = False
             dupbases = []
-            for msg in sys:
+            for msg in esys:
                 body = msg['message']
                 name = body['BodyName'].lower()
                 sysname = body['StarSystem'].lower()
@@ -237,7 +272,7 @@ def main():
                 elif name != sysname and (bodyid == 0 or sma == 0):
                     dupbases += [name]
 
-            for msg in sys:
+            for msg in esys:
                 body = msg['message']
                 name = body['BodyName'].lower()
                 sysname = body['StarSystem'].lower()
@@ -267,7 +302,7 @@ def main():
                             dupinclin = dup['Inclination'] if 'Inclination' in dup else 0
                             if (sma == 0 and dupsma == 0):
                                 isdup = True
-                                mismatchreason = 'Main star in wrong system'
+                                mismatchreason = 'Duplicate of body in {0}'.format(dup['StarSystem'])
                             elif abs(aop - dupaop) < 0.01 and abs(inclin - dupinclin) < 0.01:
                                 isdup = True
                                 mismatchreason = 'Duplicate of body in {0}'.format(dup['StarSystem'])
@@ -276,7 +311,7 @@ def main():
                         for dupbase in dupbases:
                             if name.startswith(dupbase):
                                 isdup = True
-                                mismatchreason = 'Planet of main star in wrong system'
+                                mismatchreason = 'Duplicate of body in {0}'.format(dup['StarSystem'])
 
                 if (isnamed and not isdup and not ispgdesig) or kskey in knownbodies:
                     if ol != 0:
@@ -299,7 +334,14 @@ def main():
                     print("[{0}] Unknown:  {1} / {2}".format(ts, sysname, name))
                 else:
                     print("[{0}] Mismatch: {1} / {2} : {3}".format(ts, sysname, name, mismatchreason))
+                    msg['reject'] = {'type': 'Mismatch', 'reason': mismatchreason}
+                    rejectedbodies += [msg]
         o.write('\n]\n')
+
+    with open(rejectfile_named + '.tmp', 'a', encoding='utf-8') as f:
+        json.dump(rejectedbodies, f)
+
+    os.rename(rejectfile_named + '.tmp', rejectfile_named)
     os.rename(outfile_named + '.tmp', outfile_named)
     os.rename(cachefile_named + '.tmp', cachefile_named)
 
