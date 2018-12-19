@@ -1,3 +1,4 @@
 15 14 * * * /srv/eddata/scripts/log.sh edsm /srv/eddata/scripts/edsm-daily.sh
 30 11 * * * /srv/eddata/scripts/log.sh eddn /srv/eddata/scripts/eddn-daily.sh
 00 18 * * * /srv/eddata/scripts/log.sh eddb /srv/eddata/scripts/eddb-daily.sh
+@reboot screen -d -m -S eddnlog /srv/eddata/scripts/eddn-logger.py
