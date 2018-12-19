@@ -128,13 +128,12 @@ def main():
                     softwareVersion = msg['header']['softwareVersion']
                     softwareNameVer = softwareName + '\t' + softwareVersion
 
-                    if (softwareNameVer not in software){
+                    if softwareNameVer not in software:
                         software[softwareNameVer] = { 
                             'name': softwareName, 
                             'version': softwareVersion, 
                             'total': 0
                         }
-                    }
 
                     software[softwareNameVer]['total'] += 1
                 
