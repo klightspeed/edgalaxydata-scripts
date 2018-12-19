@@ -11,8 +11,8 @@ from datetime import datetime
 relay = 'tcp://eddn.edcd.io:9500'
 timeout = 600000
 
-outfiles = {}
-outfilenames = {}
+#outfiles = {}
+#outfilenames = {}
 anonfiles = {}
 anonfilenames = {}
 
@@ -22,19 +22,29 @@ message_types = {
     'https://eddn.edcd.io/schemas/shipyard/2': 'Shipyard',
     'https://eddn.edcd.io/schemas/commodity/3': 'Commodity',
     'https://eddn.edcd.io/schemas/blackmarket/1': 'BlackMarket',
+    'https://eddn.edcd.io/schemas/journal/1/live': 'Journal',
+    'https://eddn.edcd.io/schemas/outfitting/2/live': 'Outfitting',
+    'https://eddn.edcd.io/schemas/shipyard/2/live': 'Shipyard',
+    'https://eddn.edcd.io/schemas/commodity/3/live': 'Commodity',
+    'https://eddn.edcd.io/schemas/blackmarket/1/live': 'BlackMarket',
     'https://eddn.edcd.io/schemas/journal/1/test': 'Test-Journal',
     'https://eddn.edcd.io/schemas/outfitting/2/test': 'Test-Outfitting',
     'https://eddn.edcd.io/schemas/shipyard/2/test': 'Test-Shipyard',
     'https://eddn.edcd.io/schemas/commodity/3/test': 'Test-Commodity',
     'https://eddn.edcd.io/schemas/blackmarket/1/test': 'Test-BlackMarket',
+    'https://eddn.edcd.io/schemas/journal/1/beta': 'Beta-Journal',
+    'https://eddn.edcd.io/schemas/outfitting/2/beta': 'Beta-Outfitting',
+    'https://eddn.edcd.io/schemas/shipyard/2/beta': 'Beta-Shipyard',
+    'https://eddn.edcd.io/schemas/commodity/3/beta': 'Beta-Commodity',
+    'https://eddn.edcd.io/schemas/blackmarket/1/beta': 'Beta-BlackMarket',
 }
 
-eddndir = '/srv/eddata/EDDN'
+#eddndir = '/srv/eddata/EDDN'
 anondir = '/srv/eddata/EDDN-anon'
 
 def process_msg(msgtype, msg, msgraw):
-    global outfiles
-    global outfilenames
+    #global outfiles
+    #global outfilenames
     global anonfiles
     global anonfilenames
     print(msgraw.decode('utf-8'))
@@ -44,23 +54,23 @@ def process_msg(msgtype, msg, msgraw):
         eventtype = msgtype + '.' + msg['message']['event']
     else:
         eventtype = msgtype
-    filename = eddndir + '/{0}-{1:%Y-%m-%d}.jsonl'.format(eventtype, date)
+    #filename = eddndir + '/{0}-{1:%Y-%m-%d}.jsonl'.format(eventtype, date)
     anonname = anondir + '/{0}-{1:%Y-%m-%d}.jsonl'.format(eventtype, date)
-    if eventtype in outfiles and outfiles[eventtype] is not None and outfilenames[eventtype] != filename:
-        outfiles[eventtype].close()
-        outfiles[eventtype] = None
+    #if eventtype in outfiles and outfiles[eventtype] is not None and outfilenames[eventtype] != filename:
+    #    outfiles[eventtype].close()
+    #    outfiles[eventtype] = None
     if eventtype in anonfiles and anonfiles[eventtype] is not None and anonfilenames[eventtype] != anonname:
         anonfiles[eventtype].close()
         anonfiles[eventtype] = None
-    if eventtype not in outfiles or outfiles[eventtype] is None:
-        outfilenames[eventtype] = filename
-        outfiles[eventtype] = open(outfilenames[eventtype], 'a', encoding='utf-8')
+    #if eventtype not in outfiles or outfiles[eventtype] is None:
+    #    outfilenames[eventtype] = filename
+    #    outfiles[eventtype] = open(outfilenames[eventtype], 'a', encoding='utf-8')
     if eventtype not in anonfiles or anonfiles[eventtype] is None:
         anonfilenames[eventtype] = anonname
         anonfiles[eventtype] = open(anonfilenames[eventtype], 'a', encoding='utf-8')
-    outfiles[eventtype].write(msgraw.decode('utf-8'))
-    outfiles[eventtype].write('\n')
-    outfiles[eventtype].flush()
+    #outfiles[eventtype].write(msgraw.decode('utf-8'))
+    #outfiles[eventtype].write('\n')
+    #outfiles[eventtype].flush()
     anonfiles[eventtype].write(json.dumps(msg, sort_keys=True))
     anonfiles[eventtype].write('\n')
     anonfiles[eventtype].flush()
@@ -87,7 +97,6 @@ def main():
                 msgtype = msg['$schemaRef']
                 if msgtype in message_types:
                     msgtype = message_types[msgtype]
-                    del msg['header']['uploaderID']
                     try:
                         process_msg(msgtype, msg, message)
                     except AttributeError:
