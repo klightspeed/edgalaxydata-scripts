@@ -16,7 +16,7 @@ bodiesdir = '/srv/eddata/namedbodies'
 
 revpgsysre = re.compile('[0-9]+(-[0-9]+)?[a-h] [a-z]-[a-z][a-z] ')
 pgre = re.compile(' [a-z][a-z]-[a-z] [a-h][0-9]')
-desigre = re.compile('( [a-h]|( a?b?c?d?e?f?g?h?)? ([1-9][0-9]*( [a-z]( [a-z]( [a-z])?)?)?|[a-h] belt cluster [1-9][0-9]*))$')
+desigre = re.compile('( [a-h]|( a?b?c?d?e?f?g?h?)? ([1-9][0-9]*( [a-z]( [a-z]( [a-z])?)?)?( [a-h] ring)?|[a-h] belt cluster [1-9][0-9]*))$')
 sdesigre = re.compile(' [a-h]$')
 
 bodiesfile       = edsmdir   + '/bodies.jsonl.bz2'
@@ -26,6 +26,7 @@ sysrenamefile    = bodiesdir + '/renamed-systems.txt'
 outfile_mismatch = bodiesdir + '/edsm-bodymismatch.json'
 outfile_named    = bodiesdir + '/edsm-namedbodies.json'
 cachefile_named  = bodiesdir + '/edsm-namedbodies-cache.json'
+delbodies_named  = bodiesdir + '/edsm-bodies-deleted.txt'
 
 sheeturi = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9lEav_Bs8rZGRtwcwuOwQ2hIoiNJ_PWYAEgXk7E3Y-UD0r6uER04y4VoQxFAAdjMS4oipPyySoC3t/pub?gid=711269421&single=true&output=tsv'
 
@@ -51,6 +52,13 @@ def loadKnownBodies():
                 key = fields[2].lower() + ':' + fields[4].lower()
                 knownbodies.add(key)
     return knownbodies
+
+def loadDelBodies():
+    delbodies = set()
+    with open(delbodies_named, 'r') as f:
+        for line in f:
+            delbodies.add(int(line))
+    return delbodies
 
 def loadSysCleanup():
     syscleanup = set()
@@ -121,7 +129,8 @@ def saveNamedBodies(systems, knownbodies, knownbyname, rejectstore):
 
         o.write('\n]\n')
 
-def processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename):
+def processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, sysrename, delbodies):
+    print("Processing {0}".format(filename))
     with bz2.BZ2File(filename, 'r') as f:
         system = None
         for line in f:
@@ -136,17 +145,18 @@ def processBodiesFile(filename, systems, knownbodies, knownbyname, rejectstore, 
                     else:
                         system = System(body.sysid)
 
-                system.processBodyPass1(body, rejectstore, systems, knownbodies, knownbyname, sysrename)
+                system.processBodyPass1(body, rejectstore, systems, knownbodies, knownbyname, sysrename, delbodies)
 
-def processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles):
+def processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles, delbodies):
     if not os.path.exists(cachefile_named) or os.path.getmtime(bodiesfile) > os.path.getmtime(cachefile_named):
         systems.clear()
-        processBodiesFile(bodiesfile, systems, knownbodies, knownbyname, rejectstore, sysrename)
+        processBodiesFile(bodiesfile, systems, knownbodies, knownbyname, rejectstore, sysrename, delbodies)
 
-    if False:
+    if True:
         for fn in sorted(glob.glob(bodiesdeltaglob)):
             if fn not in excludefiles:
-                processBodiesFile(fn, systems, knownbodies, knownbyname, rejectstore, sysrename)
+                if os.path.getmtime(fn) > os.path.getmtime(bodiesfile):
+                    processBodiesFile(fn, systems, knownbodies, knownbyname, rejectstore, sysrename, delbodies)
                 excludefiles.add(fn)
 
 class RejectStore:
@@ -278,8 +288,11 @@ class System:
     def add(self, body):
         self.bodies[body.id] = body
 
-    def processBodyPass1(self, body, rejectstore, systems, knownbodies, knownbyname, sysrename):
+    def processBodyPass1(self, body, rejectstore, systems, knownbodies, knownbyname, sysrename, delbodies):
         addsys = False
+
+        if body.id in delbodies:
+            return
 
         if body.id in rejectstore.rejects:
             return
@@ -357,6 +370,8 @@ class System:
 def main():
     print('Loading known bodies')
     knownbodies = loadKnownBodies()
+    print('Loading delete bodies')
+    delbodies = loadDelBodies()
     print('Loading renamed systems')
     sysrename = loadSysRename()
     print('Loading cache')
@@ -364,7 +379,7 @@ def main():
 
     with open(outfile_mismatch + '.tmp', 'w', encoding='utf-8') as m, RejectStore(m, rejects) as rejectstore:
         print('Processing bodies')
-        processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles)
+        processBodiesPass1(systems, knownbodies, knownbyname, rejectstore, sysrename, excludefiles, delbodies)
 
         print('Saving cache')
         saveCache(systems, knownbyname, rejectstore, excludefiles)
