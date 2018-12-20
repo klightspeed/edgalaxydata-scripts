@@ -340,6 +340,7 @@ def main():
     with open(rejectfile_named + '.tmp', 'a', encoding='utf-8') as f:
         json.dump(rejectedbodies, f)
 
+    os.rename(softwarefile + '.tmp', softwarefile)
     os.rename(rejectfile_named + '.tmp', rejectfile_named)
     os.rename(outfile_named + '.tmp', outfile_named)
     os.rename(cachefile_named + '.tmp', cachefile_named)
