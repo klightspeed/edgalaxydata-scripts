@@ -263,3 +263,5 @@ Santos Dummont,Santos Dumont
 Ratri,Ratraii
 Ogma,Ogmar
 Gliese 433.2,Ratraii
+HH 17,Valyur
+IC 1848 Sector IT-H c10-15,Ulliversum's Star
